@@ -9,8 +9,8 @@ import com.darwgom.productvaultyapi.application.usecases.IUserUseCase;
 import com.darwgom.productvaultyapi.domain.entities.User;
 import com.darwgom.productvaultyapi.domain.exceptions.EntityNotFoundException;
 import com.darwgom.productvaultyapi.domain.exceptions.IllegalParamException;
-import com.darwgom.productvaultyapi.domain.exceptions.UsernameAlreadyExistsException;
-import com.darwgom.productvaultyapi.domain.exceptions.UsernameNotFoundException;
+import com.darwgom.productvaultyapi.domain.exceptions.ValueAlreadyExistsException;
+import com.darwgom.productvaultyapi.domain.exceptions.ValueNotFoundException;
 import com.darwgom.productvaultyapi.domain.repositories.UserRepository;
 import com.darwgom.productvaultyapi.infrastructure.security.JwtTokenProvider;
 import org.modelmapper.ModelMapper;
@@ -59,7 +59,7 @@ public class UserUseCase implements IUserUseCase {
         String normalizedType = normalizeRoleType(userInputDTO.getRoleType());
         userInputDTO.setRoleType(normalizedType);
         if (existingUser.isPresent()) {
-            throw new UsernameAlreadyExistsException("User already exists!");
+            throw new ValueAlreadyExistsException("User already exists!");
         } else {
             userInputDTO.setPassword(passwordEncoder.encode(userInputDTO.getPassword()));
             User user = modelMapper.map(userInputDTO, User.class);
@@ -80,7 +80,7 @@ public class UserUseCase implements IUserUseCase {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         User user = userRepository.findByUsername(loginDTO.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + loginDTO.getUsername()));
+                .orElseThrow(() -> new ValueNotFoundException("User not found with username: " + loginDTO.getUsername()));
 
         String jwt = jwtTokenProvider.createToken(user.getUsername(), user.getRoleType().name());
         user.setLastLogin(LocalDateTime.now());
@@ -94,13 +94,13 @@ public class UserUseCase implements IUserUseCase {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
         userRepository.delete(user);
-        return new MessageDTO("User deleted successfully.");
+        return new MessageDTO("User deleted successfully!");
     }
 
     @Override
     public UserDTO getCurrentUser(String jwt) {
         if (jwt == null || jwt.isEmpty()) {
-            throw new UsernameNotFoundException("No JWT token found in request headers");
+            throw new ValueNotFoundException("No JWT token found in request headers");
         }
 
         String username = jwtTokenProvider.getUsernameFromToken(jwt);
